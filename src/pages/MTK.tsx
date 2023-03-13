@@ -1,69 +1,95 @@
-import { ethers } from "ethers";
-import { useState } from "react";
+import {
+  usePrepareSendTransaction,
+  useSendTransaction,
+  useWaitForTransaction,
+  usePrepareContractWrite,
+  useContractWrite,
+  useContractRead,
+} from "wagmi";
+import { ChangeEvent, useState, useEffect } from "react";
+import nft from "./utils/nft.json";
 
 const Token = () => {
-  const contractAddress: any = "0x206a0b20f28290D0dAC891996b9B4C71baD549E9";
-  const contractAbi = "../utils/nft.json";
-  const provider = new ethers.providers.JsonRpcProvider();
-  const signer = provider.getSigner();
-  const Contract = new ethers.Contract(contractAddress, contractAbi, provider);
+  const contractAddress = "0x206a0b20f28290D0dAC891996b9B4C71baD549E9";
+  const [address, setAddress] = useState("");
+  const [transferOwnershipTx, setTransferOwnershipTx] = useState("");
+  const [balance, setBalance] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [formValues, setFormValues] = useState({
-    parameter1: "",
-    parameter2: "",
-    parameter3: "",
+  const {
+    data: balanceData,
+    isLoading: balanceLoading,
+    error: balanceError,
+  } = useContractRead({
+    address: contractAddress,
+    abi: nft,
+    functionName: "balanceOf",
+    args: [address],
   });
 
-  const handleChange = (event: any) => {
-    setFormValues({ ...formValues, [event.target.name]: event.target.value });
+  const contractWrite = useContractWrite({
+    mode: 'recklesslyUnprepared',
+    address: contractAddress,
+    abi: nft,
+    functionName: "transferOwnership",
+  });
+  
+  const { data: transferOwnership } = contractWrite || {};
+
+  const handleGetBalance = async (event: any) => {
+    event.preventDefault();
+    setIsLoading(true);
+    try {
+      const balancetx = await balanceData;
+      setBalance(balance);
+      setError("");
+    } catch (err) {
+      setError('');
+      setBalance("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmit = (event: any) => {
+  const handleTransferOwnership = async (event: any) => {
     event.preventDefault();
-    Contract.contractMethod(
-      formValues.parameter1,
-      formValues.parameter2,
-      formValues.parameter3
-    )
-      .then((result: any) => {
-        console.log(result);
-      })
-      .catch((error: any) => {
-        console.error(error);
-      });
+    setIsLoading(true);
+    try {
+      const { hash } = await transferOwnership?.();
+      setTransferOwnershipTx(hash);
+      setError("");
+      await useWaitForTransaction(hash);
+    } catch (err) {
+      setError("transfer ownership failed");
+      setTransferOwnershipTx("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="parameter1">Parameter 1:</label>
+      <form onSubmit={handleGetBalance}>
         <input
           type="text"
-          id="parameter1"
-          name="parameter1"
-          value={formValues.parameter1}
-          onChange={handleChange}
+          placeholder="Enter address to check its balance"
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setAddress(e.target.value)
+          }
         />
-        <br />
-        <label htmlFor="parameter2">Parameter 2:</label>
-        <input
-          type="text"
-          id="parameter2"
-          name="parameter2"
-          value={formValues.parameter2}
-          onChange={handleChange}
-        />
-        <br />
-        <label htmlFor="parameter3">Parameter 3:</label>
-        <input
-          type="text"
-          id="parameter3"
-          name="parameter3"
-          value={formValues.parameter3}
-          onChange={handleChange}
-        />
-        <br />
-        <button type="submit">Contract Method</button>
+        <button type="submit">Check Balance</button>
+      </form>
+      {isLoading || balanceLoading ? (
+        <p>Loading balance...</p>
+      ) : error || balanceError ? (
+        <p>Error: {error}</p>
+      ) : (
+        <p>Balance: {balance}</p>
+      )}
+      <form onSubmit={handleTransferOwnership}>
+        <input type="text" placeholder="address to" id="" />
+        <button type="submit" disabled={contractWrite?.status == "loading" }/>
       </form>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const Navbar = ()=> {
 
@@ -10,7 +11,7 @@ const Navbar = ()=> {
             <Link href="/about" className='p-2 bg-blue-100 rounded-lg'>About</Link>
             <Link href="/contact" className='p-2 bg-blue-100 rounded-lg'>Contact</Link>
 
-    <Link href="/users" className='p-2 bg-blue-100 rounded-lg'>users</Link>
+            <ConnectButton></ConnectButton>
         </div>
 
 
