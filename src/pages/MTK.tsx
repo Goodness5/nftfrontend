@@ -5,6 +5,7 @@ import {
   usePrepareContractWrite,
   useContractWrite,
   useContractRead,
+  useAccount
 } from "wagmi";
 import { ChangeEvent, useState, useEffect } from "react";
 import nft from "./utils/nft.json";
@@ -12,9 +13,7 @@ import nft from "./utils/nft.json";
 const Token = () => {
   const contractAddress = "0x206a0b20f28290D0dAC891996b9B4C71baD549E9";
   const [address, setAddress] = useState("");
-  const [transferOwnershipTx, setTransferOwnershipTx] = useState("");
   const [balance, setBalance] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const {
@@ -28,49 +27,28 @@ const Token = () => {
     args: [address],
   });
 
-  const contractWrite = useContractWrite({
-    mode: 'recklesslyUnprepared',
-    address: contractAddress,
+  const MintToken = () => {
+  const { address } = useAccount()
+  const [address_to, setAddress_to] = useState<string>("");
+
+  const { config } = usePrepareContractWrite({
+    address: '0xFBA3912Ca04dd458c843e2EE08967fC04f3579c2',
     abi: nft,
-    functionName: "transferOwnership",
+    functionName: 'mint',
+    args: [address_to, ]
+  })
+   const { data, write } = useContractWrite(config)
+   const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: data?.hash,
   });
-  
-  const { data: transferOwnership } = contractWrite || {};
 
-  const handleGetBalance = async (event: any) => {
-    event.preventDefault();
-    setIsLoading(true);
-    try {
-      const balancetx = await balanceData;
-      setBalance(balance);
-      setError("");
-    } catch (err) {
-      setError('');
-      setBalance("");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTransferOwnership = async (event: any) => {
-    event.preventDefault();
-    setIsLoading(true);
-    try {
-      const { hash } = await transferOwnership?.();
-      setTransferOwnershipTx(hash);
-      setError("");
-      await useWaitForTransaction(hash);
-    } catch (err) {
-      setError("transfer ownership failed");
-      setTransferOwnershipTx("");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleSubmit = (e: any)=>{
+       e.preventDefault()
+  }
 
   return (
     <div>
-      <form onSubmit={handleGetBalance}>
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
           placeholder="Enter address to check its balance"
@@ -87,12 +65,34 @@ const Token = () => {
       ) : (
         <p>Balance: {balance}</p>
       )}
-      <form onSubmit={handleTransferOwnership}>
-        <input type="text" placeholder="address to" id="" />
-        <button type="submit" disabled={contractWrite?.status == "loading" }/>
+
+
+
+
+
+
+
+
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="address to"
+          id=""
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setAddress_to(e.target.value)
+          }
+        />
+        <button type="submit">
+          {<p>Mint</p> ? isLoading : <p>..loading</p> ? isSuccess : <p>Mint</p>}
+        </button>
       </form>
+
+
+
+      
     </div>
   );
+}
 };
 
 export default Token;
